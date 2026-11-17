@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عشيرة الشام | Dark Web Secure Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #020502;
+            --panel-bg: rgba(4, 10, 4, 0.96);
+            --primary: #00ff66;
+            --primary-glow: rgba(0, 255, 102, 0.4);
+            --accent: #ff2222;
+            --gold: #ffd700;
+            --vip: #b533ff;
+            --text-main: #e2e8f0;
+            --text-dim: #889988;
+            --border-color: rgba(0, 255, 102, 0.25);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .screen { display: none; min-height: 100vh; padding: 20px; }
+        .screen.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        .auth-container {
+            background: var(--panel-bg);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 50px rgba(0, 255, 102, 0.25);
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            position: relative;
+            z-index: 10;
+        }
+
+        .auth-container h1 { color: var(--primary); font-size: 28px; margin-bottom: 5px; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-glow); }
+        .auth-container p { color: var(--text-dim); font-size: 12px; margin-bottom: 15px; }
+
+        .dark-warning {
+            background: rgba(255, 34, 34, 0.12);
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            width: 100%;
+            padding: 10px 4px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            transition: 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 12px var(--primary-glow); }
+
+        .form-group { margin-bottom: 12px; text-align: right; }
+        .form-group label { display: block; color: var(--primary); margin-bottom: 4px; font-weight: 600; font-size: 12px; }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-control {
+            width: 100%; padding: 9px 38px 9px 12px; background: rgba(0, 0, 0, 0.85);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            color: #fff; font-size: 13px; outline: none; transition: 0.3s;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
+
+        .toggle-password {
+            position: absolute;
+            left: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .toggle-password:hover { color: var(--primary); }
+
+        .btn {
+            width: 100%; padding: 11px; background: var(--primary); color: #000;
+            border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
+            cursor: pointer; transition: 0.3s; margin-top: 6px;
+        }
+        .btn:hover { background: #fff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.6); }
+
+        .btn-alt { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-alt:hover { background: var(--accent); color: #fff; }
+
+        .dashboard { width: 100%; max-width: 1380px; margin: 0 auto; }
+
+        header {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            padding: 15px 25px; border-radius: 12px; display: flex;
+            justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .user-info h2 { color: var(--primary); font-size: 20px; }
+        .user-info span { color: var(--text-dim); font-size: 13px; }
+
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 330px; gap: 20px; }
+        @media (max-width: 992px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+        .card h3 { color: var(--primary); font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+        .chat-box {
+            height: 280px; overflow-y: auto; background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .chat-msg { padding: 8px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); font-size: 14px; border-right: 3px solid var(--primary); }
+        .chat-msg .sender { font-weight: bold; color: var(--primary); font-size: 12px; margin-bottom: 2px; }
+        .chat-msg.admin-msg .sender { color: var(--gold); }
+        .chat-msg.admin-msg { border-right-color: var(--gold); background: rgba(255, 215, 0, 0.05); }
+
+        .chat-input-area { display: flex; gap: 8px; }
+        .room-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .room-item {
+            background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);
+            padding: 12px 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;
+            transition: 0.2s;
+        }
+        .room-item.drag-over {
+            border-color: var(--primary);
+            background: rgba(0, 255, 102, 0.1);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .room-row-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .room-info strong { font-size: 14px; }
+        .room-info span { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        .room-occupants-container {
+            display: flex; flex-direction: column; gap: 5px; margin-top: 4px;
+        }
+        
+        .user-card-box {
+            background: rgba(0, 255, 102, 0.05);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        /* وميض الكلام النشط (يضيء وينطفئ أثناء التكلم) */
+        .user-card-box.is-speaking {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 12px var(--primary);
+            background: rgba(0, 255, 102, 0.15);
+            animation: speakingPulse 0.8s infinite alternate;
+        }
+        @keyframes speakingPulse {
+            0% { border-color: rgba(0,255,102,0.4); box-shadow: 0 0 4px var(--primary); }
+            100% { border-color: rgba(0,255,102,1); box-shadow: 0 0 16px var(--primary); }
+        }
+
+        .user-card-box.owner-draggable {
+            cursor: grab;
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .user-card-box.owner-draggable:active { cursor: grabbing; }
+        .user-card-box .u-name { font-weight: bold; color: #fff; }
+        .user-card-box .u-details { font-size: 11px; color: var(--gold); display: flex; gap: 8px; align-items: center; }
+
+        .btn-sm { padding: 4px 8px; font-size: 10px; width: auto; margin: 0; border-radius: 4px; cursor: pointer; }
+
+        .admin-controls { background: rgba(255, 215, 0, 0.03); border: 1px dashed var(--gold); }
+        .admin-controls h3 { color: var(--gold); border-bottom-color: rgba(255, 215, 0, 0.2); }
+
+        .user-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px;
+        }
+
+        .customer-screen {
+            text-align: center; max-width: 500px; background: var(--panel-bg);
+            border: 1px solid var(--accent); padding: 40px; border-radius: 16px; box-shadow: 0 0 50px rgba(255, 34, 34, 0.3);
+        }
+        .customer-screen h2 { color: var(--accent); margin-bottom: 15px; }
+
+        .waiting-animation { font-size: 40px; color: var(--accent); margin: 20px 0; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+
+        .voice-indicator {
+            display: inline-block; width: 8px; height: 8px; background: var(--primary);
+            border-radius: 50%; margin-left: 5px; animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        .announcement-card-item {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .announcement-card-item.admin-announcement {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- شاشة المصادقة -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <h1>عشيرة الشام</h1>
+            <p>DARK WEB SECURE TERMINAL v6.6</p>
+            
+            <div class="dark-warning">
+                <i class="fa-solid fa-triangle-exclamation"></i> تحذير: هذه شبكة سرية مراقبة. الدخول غير المصرح به يعرضك للتتبع الفوري.
+            </div>
+
+            <div class="tabs">
+                <button type="button" class="tab-btn active" id="tab-register" onclick="switchAuthTab('register')">تجنيد جديد</button>
+                <button type="button" class="tab-btn" id="tab-login" onclick="switchAuthTab('login')">تسجيل دخول</button>
+                <button type="button" class="tab-btn" id="tab-customer" onclick="switchAuthTab('customer')">بوابة الزبائن</button>
+            </div>
+
+            <!-- نموذج إنشاء حساب جديد -->
+            <div id="form-register">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-user"></i> اسمك الحركي (باللعبة)</label>
+                    <input type="text" id="reg-name" class="form-control" placeholder="اكتب اسمك...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-id-card"></i> الآيدي (ID)</label>
+                    <input type="number" id="reg-id" class="form-control" placeholder="مثلاً: 707">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-envelope"></i> البريد الإلكتروني (الإيميل)</label>
+                    <input type="email" id="reg-email" class="form-control" placeholder="example@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-lock"></i> كلمة السر الخاصة بحسابك</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-pass" class="form-control" placeholder="اختر كلمة سر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('reg-pass', this)"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--gold);"><i class="fa-solid fa-key"></i> كلمة سر الشفرة الخاصة لدخول السيرفر</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-secret" class="form-control" placeholder="أدخل شفرة السيرفر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('reg-secret', this)"></i>
+                    </div>
+                </div>
+                <button type="button" class="btn" onclick="handleRegister()">إنشاء الحساب وتأسيس الشبكة</button>
+            </div>
+
+            <!-- نموذج تسجيل الدخول -->
+            <div id="form-login" style="display:none;">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-envelope"></i> البريد الإلكتروني</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="example@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-lock"></i> كلمة السر الخاصة</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-pass" class="form-control" placeholder="••••••••">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('login-pass', this)"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--gold);"><i class="fa-solid fa-key"></i> كلمة سر الشفرة الخاصة لدخول السيرفر</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-secret" class="form-control" placeholder="أدخل شفرة السيرفر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('login-secret', this)"></i>
+                    </div>
+                </div>
+                <button type="button" class="btn" onclick="handleLogin()">فك التشفير والدخول</button>
+            </div>
+
+            <!-- نموذج دخول الزبون -->
+            <div id="form-customer" style="display:none;">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-user"></i> اسم العميل / الزبون</label>
+                    <input type="text" id="cust-name" class="form-control" placeholder="اسمك...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-id-card"></i> آيدي اللعبة (ID)</label>
+                    <input type="number" id="cust-id" class="form-control" placeholder="مثلاً: 99">
+                </div>
+                <div class="dark-warning" style="margin-top: 10px; margin-bottom: 0; font-size: 11px;">
+                    الزبائن يدخلون أولاً إلى "غرفة الانتظار الأمنية" ولا يُسمح لهم بالكلام إلا بعد قبول المضيف أو المتحكم.
+                </div>
+                <button type="button" class="btn btn-alt" onclick="enterAsCustomer()" style="margin-top: 15px;">دخول لغرفة انتظار الصفقات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة انتظار الزبون -->
+    <div id="customer-screen" class="screen">
+        <div class="customer-screen">
+            <h2><i class="fa-solid fa-skull"></i> غرفة الانتظار المظلمة</h2>
+            <p>مرحباً بك أيها العميل <span id="cust-display-name" style="color:#fff; font-weight:bold;"></span> (ID: <span id="cust-display-id"></span>).</p>
+            <div class="waiting-animation">
+                <i class="fa-solid fa-user-secret"></i>
+            </div>
+            <p id="cust-wait-msg" style="color: var(--text-dim); line-height: 1.6;">أنت في غرفة الانتظار الأمنية. الميكروفون مقفل. انتظر ريثما يقبل المتحكم أو المسؤول دعوتك لتنتقل إلى غرفة المبيعات والمايك.</p>
+            
+            <div id="cust-voice-box" style="display:none; margin-top: 20px; background: rgba(0,255,102,0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 10px;">
+                <p style="color: var(--primary); font-weight: bold; margin-bottom: 10px;"><span class="voice-indicator"></span> تم قبولك! أنت متصل الآن في غرفة المبيعات الصوتیة</p>
+                <button type="button" class="btn btn-sm btn-alt" id="cust-mute-btn" onclick="toggleMute()"><i class="fa-solid fa-microphone"></i> كتم الصوت</button>
+            </div>
+
+            <button type="button" class="btn btn-alt" onclick="logout()" style="margin-top: 25px;">قطع الاتصال والهروب</button>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم الرئيسية -->
+    <div id="dashboard-screen" class="screen">
+        <div class="dashboard">
+            <header>
+                <div class="user-info">
+                    <h2 id="header-welcome">مرحباً</h2>
+                    <span id="header-role">الرتبة: -</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-alt" onclick="logout()">قطع الاتصال (خروج)</button>
+                </div>
+            </header>
+
+            <div class="main-grid">
+                <div>
+                    <div class="card">
+                        <h3><i class="fa-solid fa-triangle-exclamation"></i> لوحة الإعلانات السرية</h3>
+                        <div id="announcement-list-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
+                        
+                        <div id="announcement-input-area" style="display:none; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                            <input type="text" id="new-announcement" class="form-control" placeholder="بث تعميم مظلم جديد (صالح لـ 24 ساعة)..." style="font-size:12px; margin-bottom:8px;">
+                            <button type="button" class="btn btn-sm" onclick="postAnnouncement()" style="width:100%;">نشر التعميم للجميع</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-fingerprint"></i> الرصد الأمني (الحضور)</h3>
+                        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">إثبات تواجدك اليومي في العمليات.</p>
+                        <button type="button" class="btn btn-sm" onclick="markAttendance()" style="width:100%;"><i class="fa-solid fa-check"></i> تسجيل بصمة الحضور</button>
+                        <div id="attendance-status" style="font-size: 12px; color: var(--primary); margin-top: 8px; text-align:center;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <h3><i class="fa-solid fa-comments"></i> شات الشبكة السوداء (Dark Chat)</h3>
+                        <div class="chat-box" id="chat-messages"></div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input" class="form-control" placeholder="اكتب رسالة مشفرة..." onkeypress="handleChatKey(event)">
+                            <button type="button" class="btn btn-sm" onclick="sendChatMessage()" style="width: 80px; margin:0;">إرسال</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-microphone-lines"></i> قنوات الصوت المشفرة (اختر المايك واسحب العضو)</h3>
+                        
+                        <!-- اختيار الميكروفون المتصل بالكمبيوتر -->
+                        <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <label style="font-size: 11px; color: var(--primary); display: block; margin-bottom: 4px;"><i class="fa-solid fa-microphone"></i> جهاز الميكروفون المختار:</label>
+                            <select id="audio-input-devices" class="form-control" style="font-size: 11px; padding: 6px; background: #111;"></select>
+                        </div>
+
+                        <div class="room-list">
+                            <!-- غرفة الجلوس -->
+                            <div class="room-item" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropUserToRoom(event, 'lounge')">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>🕳️ غرفة الجلوس السوداء</strong>
+                                        <span>مفتوحة للجميع</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('lounge', 'غرفة الجلوس السوداء')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-lounge"></div>
+                            </div>
+                            <!-- ديوان العمليات -->
+                            <div class="room-item" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropUserToRoom(event, 'diwan')">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>⚡ ديوان العمليات العشائري</strong>
+                                        <span>للمصرح لهم فقط</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('diwan', 'ديوان العمليات العشائري')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-diwan"></div>
+                            </div>
+                            <!-- غرفة المبيعات والصفقات -->
+                            <div class="room-item" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropUserToRoom(event, 'sales')">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>📦 غرفة المبيعات والصفقات</strong>
+                                        <span>للمبيعات واستقبال الزبائن</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('sales', 'غرفة المبيعات والصفقات')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-sales"></div>
+                            </div>
+                            <!-- غرفة VIP -->
+                            <div class="room-item" style="border-color: var(--vip);" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropUserToRoom(event, 'vip')">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong style="color:var(--vip);">☠️ غرفة النخبة VIP</strong>
+                                        <span>خاصة بنخبة الـ VIP</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('vip', 'غرفة النخبة VIP')" style="background:var(--vip); color:#fff;">دخول VIP</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-vip"></div>
+                            </div>
+                            <!-- قبو القيادة -->
+                            <div class="room-item" style="border-color: var(--gold);" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropUserToRoom(event, 'leadership')">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong style="color:var(--gold);">👑 قبو مجلس القيادة الأبدي</strong>
+                                        <span>للمتحكم والقادة</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('leadership', 'قبو مجلس القيادة')" style="background:var(--gold); color:#000;">فتح القبو</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-leadership"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- قبو التحكم السيبراني (خاص للمتحكم) -->
+                    <div class="card admin-controls" id="admin-panel" style="display:none;">
+                        <h3><i class="fa-solid fa-skull-crossbones"></i> قبو التحكم السيبراني</h3>
+                        
+                        <!-- نظام الحظر السيبراني الفوري -->
+                        <div style="background: rgba(255,34,34,0.05); border: 1px solid var(--accent); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">⛔ حظر عضو نهائياً من السيرفر:</p>
+                            <select id="ban-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <button type="button" class="btn btn-sm" onclick="executeBanUser()" style="padding:4px; font-size:11px; width:100%; background:var(--accent); color:#fff; margin-bottom:8px;">حظر العضو المحدد</button>
+                            
+                            <p style="font-size: 11px; color: var(--accent); margin-bottom: 4px;">قائمة الحظر والتحكم بالحضور:</p>
+                            <div id="banned-users-list" style="font-size: 11px; max-height: 100px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;"></div>
+                        </div>
+
+                        <!-- مستكشف الحسابات المنسية عبر الـ ID -->
+                        <div style="background: rgba(0,255,102,0.05); border: 1px solid var(--primary); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--primary); margin-bottom: 5px;">🔍 استرجاع إيميل وكلمة سر عضو عبر الـ ID:</p>
+                            <input type="number" id="recover-id-input" class="form-control" placeholder="أدخل الآيدي (ID)..." style="font-size:11px; padding:6px; margin-bottom:5px;" oninput="recoverAccountByDiscordID()">
+                            <div id="recovered-result-box" style="font-size: 11px; color: var(--gold); background: rgba(0,0,0,0.6); padding: 6px; border-radius: 4px; display:none; line-height: 1.5;"></div>
+                        </div>
+
+                        <!-- إدارة المسؤولين وزبائن غرفة الانتظار -->
+                        <div style="background: rgba(255,215,0,0.05); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--gold); margin-bottom: 5px;">📍 المسؤول المعين لاستقبال صفقات الزبائن:</p>
+                            <select id="assigned-handler-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <button type="button" class="btn btn-sm" onclick="updateHandler()" style="padding:4px; font-size:11px; width:100%; background:var(--gold); color:#000;">اعتماد المسؤول</button>
+                        </div>
+
+                        <!-- منح وإزالة صلاحيات الغرف المتعددة -->
+                        <div style="background: rgba(181,51,255,0.05); border: 1px solid var(--vip); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--vip); margin-bottom: 5px;">🔑 منح صلاحيات الغرف (عدة غرف معاً):</p>
+                            <select id="perm-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <select id="perm-room-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;">
+                                <option value="vip">غرفة النخبة VIP</option>
+                                <option value="diwan">ديوان العمليات العشائري</option>
+                                <option value="sales">غرفة المبيعات والصفقات</option>
+                                <option value="leadership">قبو مجلس القيادة</option>
+                            </select>
+                            <button type="button" class="btn btn-sm" onclick="grantRoomPermission()" style="padding:4px; font-size:11px; width:100%; background:var(--vip); color:#fff; margin-bottom:6px;">منح الصلاحية المحددة</button>
+
+                            <p style="font-size: 11px; color: var(--accent); margin-bottom: 4px; margin-top:8px;">❌ سحب وإزالة صلاحية من عضو:</p>
+                            <select id="revoke-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <select id="revoke-room-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;">
+                                <option value="vip">غرفة النخبة VIP</option>
+                                <option value="diwan">ديوان العمليات العشائري</option>
+                                <option value="sales">غرفة المبيعات والصفقات</option>
+                                <option value="leadership">قبو مجلس القيادة</option>
+                            </select>
+                            <button type="button" class="btn btn-sm btn-alt" onclick="revokeRoomPermission()" style="padding:4px; font-size:11px; width:100%;">سحب الصلاحية المحددة</button>
+                        </div>
+
+                        <!-- تغيير أسماء الأعضاء -->
+                        <div style="background: rgba(0,255,102,0.05); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--primary); margin-bottom: 5px;">✏️ تغيير اسم عضو أو اسمك الحركي:</p>
+                            <select id="rename-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <input type="text" id="new-name-input" class="form-control" placeholder="اكتب الاسم الجديد..." style="font-size:11px; padding:6px; margin-bottom:5px;">
+                            <button type="button" class="btn btn-sm" onclick="executeRename()" style="padding:4px; font-size:11px; width:100%; background:var(--primary); color:#000;">تغيير اسم العضو</button>
+                        </div>
+
+                        <p style="font-size: 12px; color: var(--gold); margin-bottom: 6px;">تعديل رتب ومناصب الأعضاء:</p>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <select id="manage-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111;"></select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <select id="promote-role" class="form-control" style="font-size:11px; padding:6px; background:#111;">
+                                <option value="قائد العشيرة">قائد العشيرة</option>
+                                <option value="نائب قائد العشيرة">نائب قائد العشيرة</option>
+                                <option value="مسؤول">مسؤول</option>
+                                <option value="VIP">عضو النخبة VIP</option>
+                                <option value="فرد عشيرة">فرد عشيرة</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-sm" onclick="executePromotion()" style="background:var(--gold); color:#000; width:100%; margin-bottom: 12px;">تطبيق الرتبة الجديدة</button>
+
+                        <div style="border-top: 1px dashed rgba(255,215,0,0.3); padding-top: 10px;">
+                            <p style="font-size: 11px; color: var(--gold); margin-bottom: 6px;">🔑 إعادة تعيين كلمة سر عضو:</p>
+                            <div class="form-group" style="margin-bottom: 6px;">
+                                <select id="reset-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111;"></select>
+                            </div>
+                            <input type="text" id="reset-pass-input" class="form-control" placeholder="كلمة السر الجديدة..." style="font-size:11px; padding:6px; margin-bottom:6px;">
+                            <button type="button" class="btn btn-sm btn-alt" onclick="resetUserPassword()" style="width:100%; font-size:11px;">تغيير كلمة السر قسرياً</button>
+                        </div>
+                    </div>
+
+                    <!-- صفقات الزبائن المعلقة وغرفة الانتظار -->
+                    <div class="card" id="customers-requests-card" style="display:none; border-color: var(--accent);">
+                        <h3 style="color: var(--accent);"><i class="fa-solid fa-satellite-dish"></i> صفقات الزبائن (غرفة الانتظار)</h3>
+                        <div id="waiting-customers-list" style="font-size: 12px;">
+                            <span style="color:var(--text-dim);">لا توجد طلبات زبائن معلقة.</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-user-secret"></i> قائمة الخلايا النائمة (الأعضاء)</h3>
+                        <div id="online-users-list" style="font-size: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="remote-audios" style="display:none;"></div>
+
+    <script>
+        const SERVER_SECRET_CODE = "6M";
+
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        const chars = "01SHAM_DARK_WEB_SECRET";
+        const fontSize = 14;
+        const columns = Math.floor(window.innerWidth / fontSize);
+        const drops = Array(columns).fill(1);
+        setInterval(() => {
+            ctx.fillStyle = 'rgba(2, 5, 2, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                ctx.fillText(chars.charAt(Math.floor(Math.random() * chars.length)), i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }, 50);
+
+        function switchAuthTab(tabName) {
+            document.getElementById('tab-register').classList.remove('active');
+            document.getElementById('tab-login').classList.remove('active');
+            document.getElementById('tab-customer').classList.remove('active');
+            
+            document.getElementById('form-register').style.display = 'none';
+            document.getElementById('form-login').style.display = 'none';
+            document.getElementById('form-customer').style.display = 'none';
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('form-' + tabName).style.display = 'block';
+        }
+
+        function togglePasswordVisibility(fieldId, iconElement) {
+            const field = document.getElementById(fieldId);
+            if (field.type === "password") {
+                field.type = "text";
+                iconElement.classList.remove("fa-eye");
+                iconElement.classList.add("fa-eye-slash");
+            } else {
+                field.type = "password";
+                iconElement.classList.remove("fa-eye-slash");
+                iconElement.classList.add("fa-eye");
+            }
+        }
+
+        let currentUser = null;
+        let appState = {
+            ownerEmail: null,
+            assignedHandlerEmail: null,
+            users: [],
+            bannedEmails: [],
+            waitingCustomers: [],
+            chatMessages: [],
+            voicePresences: {}, 
+            forcedPulls: {}, 
+            mutedUsers: {}, 
+            speakingUsers: {}, // لتتبع من يتكلم حالياً لتشغيل الوميض
+            announcements: [
+                {
+                    id: 1,
+                    text: '• تحذير عام: شبكة عشيرة الشام مشفرة بالكامل. أي اختراق سيتم تتبعه.',
+                    authorName: 'المتحكم المطلق',
+                    authorRole: 'قائد العشيرة',
+                    authorEmail: 'system',
+                    timestamp: Date.now(),
+                    isOwner: true
+                }
+            ]
+        };
+
+        function syncState() {
+            const saved = localStorage.getItem('sham_darkweb_system_v23');
+            if (saved) appState = JSON.parse(saved);
+
+            if (appState.announcements) {
+                const now = Date.now();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+                appState.announcements = appState.announcements.filter(ann => {
+                    if (ann.isOwner) return true;
+                    return (now - ann.timestamp) < twentyFourHours;
+                });
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('sham_darkweb_system_v23', JSON.stringify(appState));
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const id = Number(document.getElementById('reg-id').value.trim());
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
+            const pass = document.getElementById('reg-pass').value.trim();
+            const secret = document.getElementById('reg-secret').value.trim();
+
+            if (!name || !id || !email || !pass || !secret) {
+                alert('خطأ: يجب تعبئة كافة الحقول ومفتاح أمان السيرفر!');
+                return;
+            }
+
+            if (secret !== SERVER_SECRET_CODE) {
+                alert('مرفوض! كلمة سر شفرة السيرفر غير صحيحة.');
+                return;
+            }
+
+            syncState();
+
+            if (appState.bannedEmails && appState.bannedEmails.includes(email)) {
+                alert('مرفوض أمنياً: هذا الحساب محظور من قبل المتحكم ولا يمكنه دخول الشبكة!');
+                return;
+            }
+
+            if (appState.users.some(u => u.email === email)) {
+                alert('هذا البريد مسجل مسبقاً! انتقل لتبويب تسجيل الدخول.');
+                return;
+            }
+
+            let isFirstOwner = false;
+            if (!appState.ownerEmail) {
+                appState.ownerEmail = email;
+                isFirstOwner = true;
+            }
+
+            const newUser = {
+                name: name,
+                id: id,
+                email: email,
+                password: pass,
+                role: isFirstOwner ? 'قائد العشيرة' : 'فرد عشيرة',
+                allowedRooms: isFirstOwner ? ['vip', 'diwan', 'sales', 'leadership'] : ['lounge']
+            };
+
+            appState.users.push(newUser);
+            saveState();
+
+            currentUser = newUser;
+            alert(isFirstOwner ? 'تم تأسيس الشبكة بنجاح! أنت المالك والمتحكم المطلق الآن.' : 'تم قبول تجنيدك في عشيرة الشام بنجاح.');
+            enterDashboard();
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            const pass = document.getElementById('login-pass').value.trim();
+            const secret = document.getElementById('login-secret').value.trim();
+
+            if (!email || !pass || !secret) {
+                alert('خطأ: يرجى إدخال البريد، كلمة السر، وشفرة السيرفر!');
+                return;
+            }
+
+            if (secret !== SERVER_SECRET_CODE) {
+                alert('محاولة دخول مشبوهة! شفرة السيرفر خاطئة.');
+                return;
+            }
+
+            syncState();
+
+            if (appState.bannedEmails && appState.bannedEmails.includes(email)) {
+                alert('مرفوض أمنياً: تم حظر هذا الحساب من قبل المتحكم ولا يمكنه الدخول!');
+                return;
+            }
+
+            const foundUser = appState.users.find(u => u.email === email && u.password === pass);
+            if (!foundUser) {
+                alert('هذا الحساب غير موجود! تأكد من البريد أو كلمة السر.');
+                return;
+            }
+
+            currentUser = foundUser;
+            enterDashboard();
+        }
+
+        let currentCustomer = null;
+        function enterAsCustomer() {
+            const name = document.getElementById('cust-name').value.trim();
+            const id = Number(document.getElementById('cust-id').value.trim());
+
+            if (!name || !id) {
+                alert('أدخل اسمك ورقم الآيدي لطلب الصفقة!');
+                return;
+            }
+
+            syncState();
+            currentCustomer = { name: name, id: id, admitted: false };
+            appState.waitingCustomers = appState.waitingCustomers.filter(c => c.id !== id);
+            appState.waitingCustomers.push(currentCustomer);
+            saveState();
+
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('customer-screen').classList.add('active');
+            document.getElementById('cust-display-name').innerText = name;
+            document.getElementById('cust-display-id').innerText = id;
+
+            const custCheck = setInterval(() => {
+                if (!currentCustomer) { clearInterval(custCheck); return; }
+                syncState();
+                const updated = appState.waitingCustomers.find(c => c.id === currentCustomer.id);
+                if (updated && updated.admitted && !currentCustomer.admitted) {
+                    currentCustomer.admitted = true;
+                    document.getElementById('cust-wait-msg').style.display = 'none';
+                    document.getElementById('cust-voice-box').style.display = 'block';
+                    joinRealVoiceRoom('sales', 'غرفة المبيعات والصفقات', true);
+                }
+            }, 2000);
+        }
+
+        function enterDashboard() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('dashboard-screen').classList.add('active');
+
+            const isOwner = (currentUser.email === appState.ownerEmail);
+
+            document.getElementById('header-welcome').innerText = `مرحباً، ${currentUser.name}`;
+            document.getElementById('header-role').innerText = isOwner 
+                ? `الرتبة: ${currentUser.role} (المتحكم المطلق بالشبكة) | ID: ${currentUser.id}`
+                : `الرتبة: ${currentUser.role} | ID: ${currentUser.id}`;
+
+            if (isOwner) {
+                document.getElementById('admin-panel').style.display = 'block';
+            } else {
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+
+            loadAudioInputDevices();
+            refreshUI();
+            setInterval(refreshUI, 2000);
+        }
+
+        // جلب قائمة الميكروفونات المتصلة بالجهاز وعرضها في القائمة المنسدلة
+        async function loadAudioInputDevices() {
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true }); // طلب إذن مبدئي لجلب الأجهزة
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                const selectEl = document.getElementById('audio-input-devices');
+                if (selectEl) {
+                    selectEl.innerHTML = audioInputs.map(device => `
+                        <option value="${device.deviceId}">${device.label || 'ميكروفون افتراضي (' + (selectEl.options.length + 1) + ')'}</option>
+                    `).join('');
+                }
+            } catch (e) {
+                console.log("لم يتم إعطاء إذن الميكروفون بعد لجلب الأجهزة.");
+            }
+        }
+
+        function logout() {
+            leaveVoiceRoom();
+            currentUser = null;
+            currentCustomer = null;
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('auth-screen').classList.add('active');
+        }
+
+        let currentActiveRoomId = null;
+
+        function refreshUI() {
+            if (!currentUser) return;
+            syncState();
+            
+            if (appState.bannedEmails && appState.bannedEmails.includes(currentUser.email)) {
+                alert('⚠️ تم حظرك من قبل المتحكم! سيتم إنهاء الجلسة فوراً.');
+                logout();
+                return;
+            }
+
+            const latestMe = appState.users.find(u => u.email === currentUser.email);
+            if (latestMe) {
+                currentUser = latestMe;
+                document.getElementById('header-welcome').innerText = `مرحباً، ${currentUser.name}`;
+                const isOwner = (currentUser.email === appState.ownerEmail);
+                document.getElementById('header-role').innerText = isOwner 
+                    ? `الرتبة: ${currentUser.role} (المتحكم المطلق بالشبكة) | ID: ${currentUser.id}`
+                    : `الرتبة: ${currentUser.role} | ID: ${currentUser.id}`;
+            }
+
+            if (appState.forcedPulls && appState.forcedPulls[currentUser.email]) {
+                const targetRoom = appState.forcedPulls[currentUser.email];
+                delete appState.forcedPulls[currentUser.email];
+                saveState();
+                
+                let rName = 'غرفة صوتية';
+                if (targetRoom === 'lounge') rName = 'غرفة الجلوس السوداء';
+                if (targetRoom === 'diwan') rName = 'ديوان العمليات العشائري';
+                if (targetRoom === 'sales') rName = 'غرفة المبيعات والصفقات';
+                if (targetRoom === 'vip') rName = 'غرفة النخبة VIP';
+                if (targetRoom === 'leadership') rName = 'قبو مجلس القيادة الأبدي';
+
+                alert(`⚠️ قام المتحكم بسحبك قسرياً إلى (${rName})!`);
+                joinRealVoiceRoom(targetRoom, rName, true);
+            }
+
+            if (appState.mutedUsers && appState.mutedUsers[currentUser.email]) {
+                if (localStream && localStream.getAudioTracks()[0].enabled) {
+                    localStream.getAudioTracks()[0].enabled = false;
+                    alert('⚠️ قام المتحكم بكتم الميكروفون الخاص بك!');
+                }
+            }
+
+            const isOwner = (currentUser.email === appState.ownerEmail);
+            const isHandler = (currentUser.email === appState.assignedHandlerEmail);
+            
+            const canPostAnnouncement = isOwner || currentUser.role === 'قائد العشيرة' || currentUser.role === 'نائب قائد العشيرة';
+            const annInputArea = document.getElementById('announcement-input-area');
+            if (canPostAnnouncement) {
+                annInputArea.style.display = 'block';
+            } else {
+                annInputArea.style.display = 'none';
+            }
+
+            // عرض الإعلانات مع اسم الكاتب ورتبته الحركية واضحة
+            const annContainer = document.getElementById('announcement-list-container');
+            const announcements = appState.announcements || [];
+            if (announcements.length === 0) {
+                annContainer.innerHTML = `<span style="font-size:12px; color:var(--text-dim);">لا توجد إعلانات سارية حالياً.</span>`;
+            } else {
+                annContainer.innerHTML = announcements.map(ann => {
+                    const isAnnOwner = ann.isOwner;
+                    const canDelete = isOwner || (!isAnnOwner && ann.authorEmail === currentUser.email);
+                    
+                    return `
+                        <div class="announcement-card-item ${isAnnOwner ? 'admin-announcement' : ''}">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong style="color:${isAnnOwner ? 'var(--gold)' : 'var(--primary)'}; font-size:11px;">${ann.authorName} <span style="color:var(--text-dim);">(${ann.authorRole})</span></strong>
+                                ${canDelete ? `<button type="button" class="btn btn-sm btn-alt" onclick="deleteAnnouncement(${ann.id})" style="padding:2px 6px; font-size:9px;">حذف الإعلان</button>` : ''}
+                            </div>
+                            <p style="color:var(--text-main); line-height:1.4;">${ann.text}</p>
+                            <span style="font-size:9px; color:var(--text-dim); text-align:left;">نُشر في: ${new Date(ann.timestamp).toLocaleString('ar-SA')}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const chatBox = document.getElementById('chat-messages');
+            chatBox.innerHTML = appState.chatMessages.map(m => `
+                <div class="chat-msg ${m.isSpecial ? 'admin-msg' : ''}">
+                    <div class="sender">${m.sender}</div>
+                    ${m.text}
+                </div>
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            document.getElementById('online-users-list').innerHTML = appState.users.map(u => `
+                <div class="user-row">
+                    <span><i class="fa-solid fa-circle" style="color:var(--primary); font-size:7px;"></i> ${u.name} (ID: ${u.id})</span>
+                    <span style="color:var(--gold);">${u.role}</span>
+                </div>
+            `).join('');
+
+            const roomsList = ['lounge', 'diwan', 'sales', 'vip', 'leadership'];
+            roomsList.forEach(rId => {
+                const occupants = (appState.voicePresences && appState.voicePresences[rId]) || [];
+                const boxContainer = document.getElementById(`occupants-boxes-${rId}`);
+                if (boxContainer) {
+                    if (occupants.length === 0) {
+                        boxContainer.innerHTML = `<span style="font-size:11px; color:var(--text-dim); padding:2px;">لا أحد هنا حالياً..</span>`;
+                    } else {
+                        boxContainer.innerHTML = occupants.map(o => {
+                            const isDraggable = isOwner;
+                            const draggableAttrs = isDraggable ? `draggable="true" ondragstart="dragOccupantCard(event, '${o.email}')" title="اسحب هذا العضو لنقله لغرفة أخرى"` : '';
+                            const dragClass = isDraggable ? 'owner-draggable' : '';
+                            
+                            // فحص الوميض إذا كان العضو يتكلم حالياً
+                            const isSpeaking = appState.speakingUsers && appState.speakingUsers[o.email];
+                            const speakingClass = isSpeaking ? 'is-speaking' : '';
+
+                            let actionButtonsHtml = '';
+                            const isMe = (o.email === currentUser.email);
+                            const isMutedByAdmin = appState.mutedUsers && appState.mutedUsers[o.email];
+
+                            if (isMe) {
+                                actionButtonsHtml += `<button type="button" class="btn btn-sm btn-alt" onclick="toggleMute()" title="كتم/إلغاء الكتم"><i class="fa-solid fa-microphone${isMutedByAdmin ? '-slash' : ''}"></i></button>`;
+                                actionButtonsHtml += `<button type="button" class="btn btn-sm btn-alt" onclick="leaveVoiceRoom()" style="background:var(--accent); color:#fff; border-color:var(--accent);" title="خروج من الغرفة"><i class="fa-solid fa-phone-slash"></i></button>`;
+                            } else if (isOwner) {
+                                actionButtonsHtml += `<button type="button" class="btn btn-sm btn-alt" onclick="adminToggleMuteUser('${o.email}')" style="background:${isMutedByAdmin ? 'var(--primary)' : 'var(--accent)'}; color:#fff;" title="كتم/إلغاء كتم العضو"><i class="fa-solid fa-microphone-slash"></i></button>`;
+                            }
+
+                            return `
+                                <div class="user-card-box ${dragClass} ${speakingClass}" ${draggableAttrs}>
+                                    <span class="u-name"><i class="fa-solid fa-user-secret" style="color:var(--primary); font-size:10px; margin-left:4px;"></i> ${o.name} ${isMutedByAdmin ? '<span style="color:var(--accent); font-size:10px;">(مكتوم)</span>' : ''}</span>
+                                    <div class="u-details">
+                                        <span>ID: ${o.id}</span>
+                                        <span style="color:var(--gold);">${o.role}</span>
+                                        <div style="display:flex; gap:3px; margin-right:5px;">${actionButtonsHtml}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            });
+
+            if (isOwner) {
+                const bannedListEl = document.getElementById('banned-users-list');
+                const bannedArr = appState.bannedEmails || [];
+                if (bannedArr.length === 0) {
+                    bannedListEl.innerHTML = `<span style="color:var(--text-dim);">لا توجد حسابات محظورة حالياً.</span>`;
+                } else {
+                    bannedListEl.innerHTML = bannedArr.map(bEmail => {
+                        const bUser = appState.users.find(u => u.email === bEmail);
+                        const bName = bUser ? `${bUser.name} (ID: ${bUser.id})` : bEmail;
+                        return `
+                            <div class="user-row" style="background:rgba(255,34,34,0.1); padding:4px 6px; border-radius:4px; margin-bottom:3px;">
+                                <span style="color:var(--accent);">${bName}</span>
+                                <button type="button" class="btn btn-sm" onclick="unbanUser('${bEmail}')" style="padding:2px 6px; font-size:10px; background:var(--primary); color:#000;">إلغاء الحظر</button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                const userOptions = appState.users.map(u => `<option value="${u.email}">${u.name} (${u.role}) - ${u.email}</option>`).join('');
+                const banSelect = document.getElementById('ban-user-select');
+                const manageSelect = document.getElementById('manage-user-select');
+                const resetUserSelect = document.getElementById('reset-user-select');
+                const renameSelect = document.getElementById('rename-user-select');
+                const permSelect = document.getElementById('perm-user-select');
+                const revokeSelect = document.getElementById('revoke-user-select');
+                const handlerSelect = document.getElementById('assigned-handler-select');
+                
+                if (manageSelect.options.length !== appState.users.length) {
+                    manageSelect.innerHTML = userOptions;
+                    resetUserSelect.innerHTML = userOptions;
+                    banSelect.innerHTML = userOptions;
+                    renameSelect.innerHTML = userOptions;
+                    permSelect.innerHTML = userOptions;
+                    revokeSelect.innerHTML = userOptions;
+                    handlerSelect.innerHTML = `<option value="">اختر المسؤول المعين لطلبات الزبائن...</option>` + userOptions;
+                    if (appState.assignedHandlerEmail) handlerSelect.value = appState.assignedHandlerEmail;
+                }
+            }
+
+            const reqCard = document.getElementById('customers-requests-card');
+            if (isOwner || isHandler) {
+                reqCard.style.display = 'block';
+                const pending = appState.waitingCustomers.filter(c => !c.admitted);
+                const waitingList = document.getElementById('waiting-customers-list');
+                if (pending.length === 0) {
+                    waitingList.innerHTML = `<span style="color:var(--text-dim);">لا توجد طلبات زبائن معلقة.</span>`;
+                } else {
+                    waitingList.innerHTML = pending.map(c => `
+                        <div class="user-row" style="background:rgba(255,34,34,0.1); padding:6px 8px; border-radius:6px; margin-bottom:5px;">
+                            <span>${c.name} (ID: ${c.id})</span>
+                            <button type="button" class="btn btn-sm" onclick="admitCustomer(${c.id})" style="padding:3px 8px; font-size:11px; background:var(--primary);">قبول ودعوة للمبيعات</button>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                reqCard.style.display = 'none';
+            }
+        }
+
+        function adminToggleMuteUser(targetEmail) {
+            if (currentUser.email !== appState.ownerEmail) return;
+            syncState();
+            if (!appState.mutedUsers) appState.mutedUsers = {};
+            appState.mutedUsers[targetEmail] = !appState.mutedUsers[targetEmail];
+            saveState();
+            refreshUI();
+        }
+
+        let draggedOccupantEmail = null;
+        function dragOccupantCard(event, email) {
+            draggedOccupantEmail = email;
+            event.dataTransfer.setData('text/plain', email);
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function removeDropStyle(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function dropUserToRoom(event, targetRoomId) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            if (!draggedOccupantEmail) return;
+
+            if (currentUser.email !== appState.ownerEmail) {
+                alert('عذراً، خاصية السحب والإفلات مخصصة للمتحقّم بالسيرفر فقط!');
+                return;
+            }
+
+            syncState();
+            if (!appState.forcedPulls) appState.forcedPulls = {};
+            appState.forcedPulls[draggedOccupantEmail] = targetRoomId;
+            saveState();
+
+            const targetUsr = appState.users.find(u => u.email === draggedOccupantEmail);
+            alert(`تم سحب وإفلات العضو (${targetUsr ? targetUsr.name : draggedOccupantEmail}) إلى الغرفة المحددة بنجاح!`);
+            draggedOccupantEmail = null;
+            refreshUI();
+        }
+
+        function recoverAccountByDiscordID() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const searchVal = document.getElementById('recover-id-input').value.trim();
+            const resBox = document.getElementById('recovered-result-box');
+
+            if (!searchVal) {
+                resBox.style.display = 'none';
+                resBox.innerHTML = '';
+                return;
+            }
+
+            const searchId = Number(searchVal);
+            syncState();
+            const found = appState.users.find(u => u.id === searchId);
+            resBox.style.display = 'block';
+
+            if (found) {
+                resBox.innerHTML = `
+                    👤 الاسم الحركي: <b>${found.name}</b><br>
+                    📧 الإيميل: <b style="color:#fff;">${found.email}</b><br>
+                    🔑 كلمة المرور: <b style="color:#00ff66;">${found.password}</b><br>
+                    👑 الرتبة: ${found.role}
+                `;
+            } else {
+                resBox.innerHTML = `<span style="color:var(--accent);">لم يتم العثور على أي حساب مسجل بهذا الآيدي (ID)!</span>`;
+            }
+        }
+
+        function executeBanUser() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('ban-user-select').value;
+            if (!targetEmail) return;
+
+            if (targetEmail === appState.ownerEmail) {
+                alert('خطأ فادح: لا يمكنك حظر نفسك!');
+                return;
+            }
+
+            syncState();
+            if (!appState.bannedEmails) appState.bannedEmails = [];
+            if (!appState.bannedEmails.includes(targetEmail)) {
+                appState.bannedEmails.push(targetEmail);
+                saveState();
+                alert('تم حظر العضو بنجاح وتم قطع اتصاله بالشبكة!');
+                refreshUI();
+            } else {
+                alert('هذا العضو محظور مسبقاً.');
+            }
+        }
+
+        function unbanUser(email) {
+            if (currentUser.email !== appState.ownerEmail) return;
+            syncState();
+            if (appState.bannedEmails) {
+                appState.bannedEmails = appState.bannedEmails.filter(e => e !== email);
+                saveState();
+                alert('تم رفع الحظر عن العضو بنجاح!');
+                refreshUI();
+            }
+        }
+
+        function grantRoomPermission() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('perm-user-select').value;
+            const roomKey = document.getElementById('perm-room-select').value;
+
+            syncState();
+            const target = appState.users.find(u => u.email === targetEmail);
+            if (target) {
+                if (!target.allowedRooms) target.allowedRooms = ['lounge'];
+                if (!target.allowedRooms.includes(roomKey)) {
+                    target.allowedRooms.push(roomKey);
+                    saveState();
+                    alert(`تم منح العضو (${target.name}) صلاحية دخول الغرفة بنجاح!`);
+                } else {
+                    alert(`العضو (${target.name}) يمتلك هذه الصلاحية مسبقاً.`);
+                }
+            }
+        }
+
+        function revokeRoomPermission() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('revoke-user-select').value;
+            const roomKey = document.getElementById('revoke-room-select').value;
+
+            syncState();
+            const target = appState.users.find(u => u.email === targetEmail);
+            if (target) {
+                if (target.email === appState.ownerEmail && roomKey === 'leadership') {
+                    alert('مرفوض: لا يمكنك سحب صلاحية قبو القيادة من المتحقّق نفسه!');
+                    return;
+                }
+                if (!target.allowedRooms) target.allowedRooms = ['lounge'];
+                const index = target.allowedRooms.indexOf(roomKey);
+                if (index > -1) {
+                    target.allowedRooms.splice(index, 1);
+                    saveState();
+                    alert(`تم سحب صلاحية الغرفة من العضو (${target.name}) بنجاح!`);
+                } else {
+                    alert(`العضو (${target.name}) لا يمتلك هذه الصلاحية أصلاً.`);
+                }
+            }
+        }
+
+        function executeRename() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('rename-user-select').value;
+            const newName = document.getElementById('new-name-input').value.trim();
+            if (!newName) { alert('يرجى كتابة الاسم الجديد أولاً!'); return; }
+            
+            syncState();
+            const target = appState.users.find(u => u.email === targetEmail);
+            if (target) {
+                target.name = newName;
+                saveState();
+                document.getElementById('new-name-input').value = '';
+                alert(`تم تغيير الاسم بنجاح إلى (${newName})!`);
+                refreshUI();
+            }
+        }
+
+        function updateHandler() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            syncState();
+            appState.assignedHandlerEmail = document.getElementById('assigned-handler-select').value;
+            saveState();
+            alert('تم تحويل سلطة استقبال صفقات الزبائن بنجاح!');
+        }
+
+        function executePromotion() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('manage-user-select').value;
+            const newRole = document.getElementById('promote-role').value;
+            
+            syncState();
+            const target = appState.users.find(u => u.email === targetEmail);
+            if (target) {
+                target.role = newRole;
+                saveState();
+                alert(`تم تحديث رتبة العضو بنجاح لتصبح: ${newRole}`);
+                refreshUI();
+            }
+        }
+
+        function resetUserPassword() {
+            if (currentUser.email !== appState.ownerEmail) return;
+            const targetEmail = document.getElementById('reset-user-select').value;
+            const newPass = document.getElementById('reset-pass-input').value.trim();
+            if (!targetEmail || !newPass) { 
+                alert('يرجى اختيار العضو المُراد وكتابة كلمة السر الجديدة!'); 
+                return; 
+            }
+            syncState();
+            const target = appState.users.find(u => u.email === targetEmail);
+            if (target) {
+                target.password = newPass;
+                saveState();
+                document.getElementById('reset-pass-input').value = '';
+                alert(`تم تغيير كلمة سر العضو (${target.name}) بنجاح.`);
+            }
+        }
+
+        function admitCustomer(id) {
+            syncState();
+            const cust = appState.waitingCustomers.find(c => c.id === id);
+            if (cust) {
+                cust.admitted = true;
+                saveState();
+                alert(`تم قبول العميل ${cust.name} ودعوته لغرفة المبيعات.`);
+                refreshUI();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            syncState();
+            appState.chatMessages.push({
+                sender: `${currentUser.name} [${currentUser.role}]`,
+                text: text,
+                isSpecial: currentUser.email === appState.ownerEmail || currentUser.role.includes('قائد')
+            });
+            saveState();
+            input.value = '';
+            refreshUI();
+        }
+        function handleChatKey(e) { if (e.key === 'Enter') sendChatMessage(); }
+
+        // نشر إعلان مع إدراج اسم العضو ورتبته الحركية بوضوح
+        function postAnnouncement() {
+            const isOwner = (currentUser.email === appState.ownerEmail);
+            const canPost = isOwner || currentUser.role === 'قائد العشيرة' || currentUser.role === 'نائب قائد العشيرة';
+            if (!canPost) {
+                alert('عذراً، نشر الإعلانات مخصص للمتحكم، القائد، ونائب القائد فقط!');
+                return;
+            }
+            const val = document.getElementById('new-announcement').value.trim();
+            if (!val) return;
+
+            syncState();
+            if (!appState.announcements) appState.announcements = [];
+
+            const newAnn = {
+                id: Date.now(),
+                text: val,
+                authorName: currentUser.name,
+                authorRole: currentUser.role,
+                authorEmail: currentUser.email,
+                timestamp: Date.now(),
+                isOwner: isOwner
+            };
+
+            appState.announcements.unshift(newAnn);
+            saveState();
+            document.getElementById('new-announcement').value = '';
+            refreshUI();
+        }
+
+        function deleteAnnouncement(annId) {
+            syncState();
+            const ann = (appState.announcements || []).find(a => a.id === annId);
+            if (!ann) return;
+
+            const isOwner = (currentUser.email === appState.ownerEmail);
+            const canDelete = isOwner || (!ann.isOwner && ann.authorEmail === currentUser.email);
+
+            if (!canDelete) {
+                alert('مرفوض أمنياً: لا يمكنك حذف إعلان لا تملكه أو إعلان صادر من المتحقّق!');
+                return;
+            }
+
+            appState.announcements = appState.announcements.filter(a => a.id !== annId);
+            saveState();
+            refreshUI();
+        }
+
+        function markAttendance() {
+            document.getElementById('attendance-status').innerText = `✓ تسجيل البصمة الساعة ${new Date().toLocaleTimeString('ar-SA')}`;
+        }
+
+        let localStream = null;
+        let peer = null;
+        let activeCalls = [];
+        let isMuted = false;
+        let audioContext = null;
+        let analyser = null;
+        let speakingCheckInterval = null;
+
+        async function joinRealVoiceRoom(roomId, roomName, isBypass = false) {
+            if (!isBypass) {
+                const isOwner = (currentUser.email === appState.ownerEmail);
+                if (!isOwner && roomId !== 'lounge') {
+                    if (!currentUser.allowedRooms || !currentUser.allowedRooms.includes(roomId)) {
+                        alert(`مرفوض أمنياً: أنت لا تمتلك صلاحية دخول (${roomName}). تواصل مع المتحكم ليمنحك الإذن.`);
+                        return;
+                    }
+                }
+            }
+
+            try {
+                leaveVoiceRoom();
+                const selectedMicId = document.getElementById('audio-input-devices').value;
+                const constraints = {
+                    audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true,
+                    video: false
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                setupAudioAnalyser(localStream);
+            } catch (err) {
+                alert('فشل في الوصول للمايكروفون المختار. تأكد من الأذونات!');
+                return;
+            }
+
+            currentActiveRoomId = roomId;
+
+            syncState();
+            if (!appState.voicePresences) appState.voicePresences = {};
+            Object.keys(appState.voicePresences).forEach(r => {
+                appState.voicePresences[r] = appState.voicePresences[r].filter(p => p.email !== currentUser.email);
+            });
+            if (!appState.voicePresences[roomId]) appState.voicePresences[roomId] = [];
+            appState.voicePresences[roomId].push({
+                name: currentUser.name,
+                id: currentUser.id,
+                role: currentUser.role,
+                email: currentUser.email
+            });
+            saveState();
+
+            const userUid = `user_${currentUser.id}`;
+            const myPeerId = `sham_darkweb_2026_${roomId}_${userUid}`;
+            
+            peer = new Peer(myPeerId);
+
+            peer.on('open', (id) => {
+                let roomPeers = JSON.parse(localStorage.getItem(`dark_voice_${roomId}`) || '[]');
+                roomPeers = roomPeers.filter(p => p !== id);
+                
+                roomPeers.forEach(remotePeerId => {
+                    const call = peer.call(remotePeerId, localStream);
+                    setupCallEvents(call);
+                });
+
+                roomPeers.push(id);
+                localStorage.setItem(`dark_voice_${roomId}`, JSON.stringify(roomPeers));
+            });
+
+            peer.on('call', (call) => {
+                call.answer(localStream);
+                setupCallEvents(call);
+            });
+        }
+
+        // فحص مستويات الصوت لإنشاء الوميض التفاعلي أثناء الكلام
+        function setupAudioAnalyser(stream) {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                if (speakingCheckInterval) clearInterval(speakingCheckInterval);
+
+                speakingCheckInterval = setInterval(() => {
+                    if (!analyser || isMuted) {
+                        updateMySpeakingState(false);
+                        return;
+                    }
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    let average = sum / dataArray.length;
+
+                    // إذا كان الصوت أعلى من عتبة معينة يعتبر يتكلم فيضيء الوميض
+                    if (average > 12) {
+                        updateMySpeakingState(true);
+                    } else {
+                        updateMySpeakingState(false);
+                    }
+                }, 200);
+            } catch (e) {
+                console.log("AudioContext error:", e);
+            }
+        }
+
+        function updateMySpeakingState(isSpeaking) {
+            syncState();
+            if (!appState.speakingUsers) appState.speakingUsers = {};
+            const oldState = appState.speakingUsers[currentUser.email];
+            if (oldState !== isSpeaking) {
+                appState.speakingUsers[currentUser.email] = isSpeaking;
+                saveState();
+            }
+        }
+
+        function setupCallEvents(call) {
+            activeCalls.push(call);
+            call.on('stream', (remoteStream) => {
+                const audio = document.createElement('audio');
+                audio.srcObject = remoteStream;
+                audio.autoplay = true;
+                document.getElementById('remote-audios').appendChild(audio);
+            });
+        }
+
+        function leaveVoiceRoom() {
+            if (speakingCheckInterval) { clearInterval(speakingCheckInterval); speakingCheckInterval = null; }
+            if (audioContext) { audioContext.close(); audioContext = null; }
+
+            if (currentUser) {
+                syncState();
+                if (appState.speakingUsers) {
+                    delete appState.speakingUsers[currentUser.email];
+                }
+                if (currentActiveRoomId && appState.voicePresences && appState.voicePresences[currentActiveRoomId]) {
+                    appState.voicePresences[currentActiveRoomId] = appState.voicePresences[currentActiveRoomId].filter(p => p.email !== currentUser.email);
+                }
+                saveState();
+            }
+
+            currentActiveRoomId = null;
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            activeCalls = [];
+            document.getElementById('remote-audios').innerHTML = '';
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            isMuted = !isMuted;
+            localStream.getAudioTracks()[0].enabled = !isMuted;
+            
+            if (isMuted) updateMySpeakingState(false);
+
+            const btn = document.getElementById('cust-mute-btn');
+            if (btn) {
+                btn.innerHTML = isMuted ? `<i class="fa-solid fa-microphone-slash"></i> إلغاء الكتم` : `<i class="fa-solid fa-microphone"></i> كتم`;
+                btn.style.color = isMuted ? 'var(--accent)' : 'inherit';
+            }
+        }
+    </script>
+</body>
+</html>
