@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عشيرة الشام | Dark Web Secure Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #020502;
+            --panel-bg: rgba(4, 10, 4, 0.96);
+            --primary: #00ff66;
+            --primary-glow: rgba(0, 255, 102, 0.4);
+            --accent: #ff2222;
+            --gold: #ffd700;
+            --vip: #b533ff;
+            --text-main: #e2e8f0;
+            --text-dim: #889988;
+            --border-color: rgba(0, 255, 102, 0.25);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .screen { display: none; min-height: 100vh; padding: 20px; }
+        .screen.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        .auth-container {
+            background: var(--panel-bg);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 50px rgba(0, 255, 102, 0.25);
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            position: relative;
+            z-index: 10;
+        }
+
+        .auth-container h1 { color: var(--primary); font-size: 28px; margin-bottom: 5px; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-glow); }
+        .auth-container p { color: var(--text-dim); font-size: 12px; margin-bottom: 15px; }
+
+        .dark-warning {
+            background: rgba(255, 34, 34, 0.12);
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            width: 100%;
+            padding: 10px 4px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            transition: 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 12px var(--primary-glow); }
+
+        .form-group { margin-bottom: 12px; text-align: right; }
+        .form-group label { display: block; color: var(--primary); margin-bottom: 4px; font-weight: 600; font-size: 12px; }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-control {
+            width: 100%; padding: 9px 38px 9px 12px; background: rgba(0, 0, 0, 0.85);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            color: #fff; font-size: 13px; outline: none; transition: 0.3s;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
+
+        .toggle-password {
+            position: absolute;
+            left: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .toggle-password:hover { color: var(--primary); }
+
+        .btn {
+            width: 100%; padding: 11px; background: var(--primary); color: #000;
+            border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
+            cursor: pointer; transition: 0.3s; margin-top: 6px;
+        }
+        .btn:hover { background: #fff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.6); }
+
+        .btn-alt { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-alt:hover { background: var(--accent); color: #fff; }
+
+        .dashboard { width: 100%; max-width: 1380px; margin: 0 auto; }
+
+        header {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            padding: 15px 25px; border-radius: 12px; display: flex;
+            justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .user-info h2 { color: var(--primary); font-size: 20px; }
+        .user-info span { color: var(--text-dim); font-size: 13px; }
+
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 330px; gap: 20px; }
+        @media (max-width: 992px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+        .card h3 { color: var(--primary); font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+        .chat-box {
+            height: 280px; overflow-y: auto; background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;
+        }
+
+        .chat-msg { padding: 8px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); font-size: 14px; border-right: 3px solid var(--primary); }
+        .chat-msg .sender { font-weight: bold; color: var(--primary); font-size: 12px; margin-bottom: 2px; }
+        .chat-msg.admin-msg .sender { color: var(--gold); }
+        .chat-msg.admin-msg { border-right-color: var(--gold); background: rgba(255, 215, 0, 0.05); }
+
+        .chat-input-area { display: flex; gap: 8px; }
+        .room-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .room-item {
+            background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);
+            padding: 12px 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;
+            transition: 0.2s;
+        }
+        .room-item.drag-over {
+            border-color: var(--primary);
+            background: rgba(0, 255, 102, 0.1);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .room-row-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .room-info strong { font-size: 14px; }
+        .room-info span { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        .room-occupants-container {
+            display: flex; flex-direction: column; gap: 5px; margin-top: 4px;
+        }
+        
+        .user-card-box {
+            background: rgba(0, 255, 102, 0.05);
+            border: 1px solid rgba(0, 255, 102, 0.3);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .user-card-box.is-speaking {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 12px var(--primary);
+            background: rgba(0, 255, 102, 0.15);
+            animation: speakingPulse 0.8s infinite alternate;
+        }
+        @keyframes speakingPulse {
+            0% { border-color: rgba(0,255,102,0.4); box-shadow: 0 0 4px var(--primary); }
+            100% { border-color: rgba(0,255,102,1); box-shadow: 0 0 16px var(--primary); }
+        }
+
+        .user-card-box.owner-draggable {
+            cursor: grab;
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .user-card-box.owner-draggable:active { cursor: grabbing; }
+        .user-card-box .u-name { font-weight: bold; color: #fff; }
+        .user-card-box .u-details { font-size: 11px; color: var(--gold); display: flex; gap: 8px; align-items: center; }
+
+        .btn-sm { padding: 4px 8px; font-size: 10px; width: auto; margin: 0; border-radius: 4px; cursor: pointer; }
+
+        .admin-controls { background: rgba(255, 215, 0, 0.03); border: 1px dashed var(--gold); }
+        .admin-controls h3 { color: var(--gold); border-bottom-color: rgba(255, 215, 0, 0.2); }
+
+        .customer-screen {
+            text-align: center; max-width: 500px; background: var(--panel-bg);
+            border: 1px solid var(--accent); padding: 40px; border-radius: 16px; box-shadow: 0 0 50px rgba(255, 34, 34, 0.3);
+        }
+        .customer-screen h2 { color: var(--accent); margin-bottom: 15px; }
+
+        .waiting-animation { font-size: 40px; color: var(--accent); margin: 20px 0; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+
+        .voice-indicator {
+            display: inline-block; width: 8px; height: 8px; background: var(--primary);
+            border-radius: 50%; margin-left: 5px; animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- شاشة المصادقة -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <h1>عشيرة الشام</h1>
+            <p>DARK WEB SECURE TERMINAL v6.7</p>
+            
+            <div class="dark-warning">
+                <i class="fa-solid fa-triangle-exclamation"></i> تحذير: شبكة سرية مراقبة. الدخول غير المصرح به يعرضك للتتبع الفوري.
+            </div>
+
+            <div class="tabs">
+                <button type="button" class="tab-btn active" id="tab-register" onclick="switchAuthTab('register')">تجنيد جديد</button>
+                <button type="button" class="tab-btn" id="tab-login" onclick="switchAuthTab('login')">تسجيل دخول</button>
+                <button type="button" class="tab-btn" id="tab-customer" onclick="switchAuthTab('customer')">بوابة الزبائن</button>
+            </div>
+
+            <!-- نموذج إنشاء حساب جديد -->
+            <div id="form-register">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-user"></i> اسمك الحركي (باللعبة)</label>
+                    <input type="text" id="reg-name" class="form-control" placeholder="اكتب اسمك...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-id-card"></i> الآيدي (ID)</label>
+                    <input type="number" id="reg-id" class="form-control" placeholder="مثلاً: 707">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-envelope"></i> البريد الإلكتروني</label>
+                    <input type="email" id="reg-email" class="form-control" placeholder="example@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-lock"></i> كلمة السر الخاصة بالحساب</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-pass" class="form-control" placeholder="اختر كلمة سر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('reg-pass', this)"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--gold);"><i class="fa-solid fa-key"></i> شفرة السيرفر السرية</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-secret" class="form-control" placeholder="أدخل شفرة السيرفر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('reg-secret', this)"></i>
+                    </div>
+                </div>
+                <button type="button" class="btn" onclick="handleRegister()">إنشاء الحساب وتأسيس الشبكة</button>
+            </div>
+
+            <!-- نموذج تسجيل الدخول -->
+            <div id="form-login" style="display:none;">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-envelope"></i> البريد الإلكتروني</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="example@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-lock"></i> كلمة السر الخاصة</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-pass" class="form-control" placeholder="••••••••">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('login-pass', this)"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: var(--gold);"><i class="fa-solid fa-key"></i> شفرة السيرفر السرية</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-secret" class="form-control" placeholder="أدخل شفرة السيرفر...">
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('login-secret', this)"></i>
+                    </div>
+                </div>
+                <button type="button" class="btn" onclick="handleLogin()">فك التشفير والدخول</button>
+            </div>
+
+            <!-- نموذج دخول الزبون -->
+            <div id="form-customer" style="display:none;">
+                <div class="form-group">
+                    <label><i class="fa-solid fa-user"></i> اسم العميل / الزبون</label>
+                    <input type="text" id="cust-name" class="form-control" placeholder="اسمك...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fa-solid fa-id-card"></i> آيدي اللعبة (ID)</label>
+                    <input type="number" id="cust-id" class="form-control" placeholder="مثلاً: 99">
+                </div>
+                <div class="dark-warning" style="margin-top: 10px; margin-bottom: 0; font-size: 11px;">
+                    الزبائن يدخلون لغرفة الانتظار ولا يمكنهم الدخول لغرفة المبيعات الصوتية إلا بعد موافقة المسؤول المباشرة.
+                </div>
+                <button type="button" class="btn btn-alt" onclick="enterAsCustomer()" style="margin-top: 15px;">دخول لغرفة انتظار الصفقات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة انتظار الزبون (أو انتقاله للغرفة الصوتية بعد القبول) -->
+    <div id="customer-screen" class="screen">
+        <div class="customer-screen" id="customer-box-ui">
+            <h2 id="cust-screen-title"><i class="fa-solid fa-skull"></i> غرفة الانتظار المظلمة</h2>
+            <p>مرحباً بك أيها العميل <span id="cust-display-name" style="color:#fff; font-weight:bold;"></span> (ID: <span id="cust-display-id"></span>).</p>
+            <div class="waiting-animation" id="cust-wait-icon">
+                <i class="fa-solid fa-user-secret"></i>
+            </div>
+            <p id="cust-wait-msg" style="color: var(--text-dim); line-height: 1.6;">أنت في غرفة الانتظار الأمنية. انتظر ريثما يقبل المسؤول طلبك لتتحول تلقائياً إلى غرفة المبيعات الصوتية.</p>
+            
+            <div id="cust-voice-box" style="display:none; margin-top: 20px; background: rgba(0,255,102,0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 10px;">
+                <p style="color: var(--primary); font-weight: bold; margin-bottom: 10px;"><span class="voice-indicator"></span> تم قبولك وتحويلك لغرفة المبيعات الصوتية!</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button type="button" class="btn btn-sm btn-alt" id="cust-mute-btn" onclick="toggleCustomerMute()"><i class="fa-solid fa-microphone"></i> كتم الصوت</button>
+                    <button type="button" class="btn btn-sm" onclick="leaveCustomerRoom()" style="background: var(--accent); color:#fff;"><i class="fa-solid fa-right-from-bracket"></i> مغادرة الغرفة</button>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-alt" id="cust-logout-btn" onclick="logout()" style="margin-top: 25px;">مغادرة وقطع الاتصال</button>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم الرئيسية (للأعضاء والمتحكم) -->
+    <div id="dashboard-screen" class="screen">
+        <div class="dashboard">
+            <header>
+                <div class="user-info">
+                    <h2 id="header-welcome">مرحباً</h2>
+                    <span id="header-role">الرتبة: -</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-alt" onclick="logout()">قطع الاتصال (خروج)</button>
+                </div>
+            </header>
+
+            <div class="main-grid">
+                <div>
+                    <div class="card">
+                        <h3><i class="fa-solid fa-triangle-exclamation"></i> لوحة الإعلانات السرية</h3>
+                        <div id="announcement-list-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
+                        
+                        <div id="announcement-input-area" style="display:none; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                            <input type="text" id="new-announcement" class="form-control" placeholder="بث تعميم مظلم جديد..." style="font-size:12px; margin-bottom:8px;">
+                            <button type="button" class="btn btn-sm" onclick="postAnnouncement()" style="width:100%;">نشر التعميم للجميع</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-fingerprint"></i> الرصد الأمني (الحضور)</h3>
+                        <button type="button" class="btn btn-sm" onclick="markAttendance()" style="width:100%;"><i class="fa-solid fa-check"></i> تسجيل بصمة الحضور</button>
+                        <div id="attendance-status" style="font-size: 12px; color: var(--primary); margin-top: 8px; text-align:center;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <h3><i class="fa-solid fa-comments"></i> شات الشبكة السوداء</h3>
+                        <div class="chat-box" id="chat-messages"></div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input" class="form-control" placeholder="اكتب رسالة مشفرة..." onkeypress="handleChatKey(event)">
+                            <button type="button" class="btn btn-sm" onclick="sendChatMessage()" style="width: 80px; margin:0;">إرسال</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-microphone-lines"></i> قنوات الصوت المشفرة</h3>
+                        
+                        <div style="margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <label style="font-size: 11px; color: var(--primary); display: block; margin-bottom: 4px;"><i class="fa-solid fa-microphone"></i> الميكروفون المختار:</label>
+                            <select id="audio-input-devices" class="form-control" style="font-size: 11px; padding: 6px; background: #111;"></select>
+                        </div>
+
+                        <div class="room-list">
+                            <div class="room-item">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>🕳️ غرفة الجلوس السوداء</strong>
+                                        <span>مفتوحة للجميع</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('lounge', 'غرفة الجلوس السوداء')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-lounge"></div>
+                            </div>
+
+                            <div class="room-item">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>⚡ ديوان العمليات العشائري</strong>
+                                        <span>للمصرح لهم فقط</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('diwan', 'ديوان العمليات العشائري')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-diwan"></div>
+                            </div>
+
+                            <div class="room-item">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong>📦 غرفة المبيعات والصفقات</strong>
+                                        <span>استقبال الزبائن والعملاء</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('sales', 'غرفة المبيعات والصفقات')">اتصال</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-sales"></div>
+                            </div>
+
+                            <div class="room-item" style="border-color: var(--vip);">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong style="color:var(--vip);">☠️ غرفة النخبة VIP</strong>
+                                        <span>خاصة بنخبة الـ VIP</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('vip', 'غرفة النخبة VIP')" style="background:var(--vip); color:#fff;">دخول VIP</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-vip"></div>
+                            </div>
+
+                            <div class="room-item" style="border-color: var(--gold);">
+                                <div class="room-row-top">
+                                    <div class="room-info">
+                                        <strong style="color:var(--gold);">👑 قبو مجلس القيادة الأبدي</strong>
+                                        <span>للمتحكم والقادة</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm" onclick="joinRealVoiceRoom('leadership', 'قبو مجلس القيادة')" style="background:var(--gold); color:#000;">فتح القبو</button>
+                                </div>
+                                <div class="room-occupants-container" id="occupants-boxes-leadership"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- قبو التحكم (خاص بالمسؤول والمتحكم) -->
+                    <div class="card admin-controls" id="admin-panel" style="display:none;">
+                        <h3><i class="fa-solid fa-skull-crossbones"></i> قبو التحكم السيبراني</h3>
+                        
+                        <!-- إدارة زبائن غرفة الانتظار (قبول الزبون لنقله التلقائي) -->
+                        <div style="background: rgba(255,215,0,0.05); border: 1px solid var(--gold); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--gold); margin-bottom: 6px;"><i class="fa-solid fa-bell"></i> زبائن غرفة الانتظار بانتظار الموافقة:</p>
+                            <div id="waiting-customers-list" style="font-size: 11px; max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+                                <span style="color: var(--text-dim); font-size: 11px;">لا يوجد زبائن بالانتظار حالياً.</span>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(255,34,34,0.05); border: 1px solid var(--accent); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--accent); margin-bottom: 5px;">⛔ حظر عضو نهائياً:</p>
+                            <select id="ban-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <button type="button" class="btn btn-sm" onclick="executeBanUser()" style="padding:4px; font-size:11px; width:100%; background:var(--accent); color:#fff;">حظر العضو</button>
+                        </div>
+
+                        <div style="background: rgba(181,51,255,0.05); border: 1px solid var(--vip); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+                            <p style="font-size: 11px; color: var(--vip); margin-bottom: 5px;">🔑 منح صلاحيات الغرف:</p>
+                            <select id="perm-user-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;"></select>
+                            <select id="perm-room-select" class="form-control" style="font-size:11px; padding:6px; background:#111; margin-bottom:5px;">
+                                <option value="vip">غرفة النخبة VIP</option>
+                                <option value="diwan">ديوان العمليات العشائري</option>
+                                <option value="sales">غرفة المبيعات والصفقات</option>
+                                <option value="leadership">قبو مجلس القيادة</option>
+                            </select>
+                            <button type="button" class="btn btn-sm" onclick="grantRoomPermission()" style="padding:4px; font-size:11px; width:100%; background:var(--vip); color:#fff;">منح الصلاحية</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_SECRET_CODE = "6M";
+        let currentUser = null;
+        let registeredUsers = JSON.parse(localStorage.getItem('sham_users') || '[]');
+        let bannedUsers = JSON.parse(localStorage.getItem('sham_banned') || '[]');
+        let announcements = JSON.parse(localStorage.getItem('sham_announcements') || '[]');
+        let chatMessages = JSON.parse(localStorage.getItem('sham_chats') || '[]');
+        let waitingCustomers = JSON.parse(localStorage.getItem('sham_waiting_customers') || '[]');
+        let attendanceLog = JSON.parse(localStorage.getItem('sham_attendance') || '[]');
+
+        let peer = null;
+        let localStream = null;
+        let activeCalls = {};
+        let currentVoiceRoom = null;
+        let isMuted = false;
+
+        window.onload = function() {
+            initMatrixBackground();
+            loadAudioDevices();
+            setInterval(syncState, 1500);
+        };
+
+        function syncState() {
+            registeredUsers = JSON.parse(localStorage.getItem('sham_users') || '[]');
+            bannedUsers = JSON.parse(localStorage.getItem('sham_banned') || '[]');
+            announcements = JSON.parse(localStorage.getItem('sham_announcements') || '[]');
+            chatMessages = JSON.parse(localStorage.getItem('sham_chats') || '[]');
+            waitingCustomers = JSON.parse(localStorage.getItem('sham_waiting_customers') || '[]');
+            attendanceLog = JSON.parse(localStorage.getItem('sham_attendance') || '[]');
+
+            if (currentUser && currentUser.type === 'customer') {
+                let freshCust = waitingCustomers.find(c => c.id === currentUser.id);
+                if (freshCust) {
+                    if (freshCust.status === 'approved' && !currentUser.autoMoved) {
+                        currentUser.autoMoved = true;
+                        acceptCustomerIntoSalesRoom();
+                    } else if (freshCust.status === 'rejected') {
+                        alert("تم رفض طلبك من قبل المسؤول.");
+                        logout();
+                    }
+                }
+            }
+
+            if (currentUser && currentUser.type !== 'customer') {
+                renderDashboardData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('sham_users', JSON.stringify(registeredUsers));
+            localStorage.setItem('sham_banned', JSON.stringify(bannedUsers));
+            localStorage.setItem('sham_announcements', JSON.stringify(announcements));
+            localStorage.setItem('sham_chats', JSON.stringify(chatMessages));
+            localStorage.setItem('sham_waiting_customers', JSON.stringify(waitingCustomers));
+            localStorage.setItem('sham_attendance', JSON.stringify(attendanceLog));
+        }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('form-register').style.display = 'none';
+            document.getElementById('form-login').style.display = 'none';
+            document.getElementById('form-customer').style.display = 'none';
+
+            if (tab === 'register') {
+                document.getElementById('tab-register').classList.add('active');
+                document.getElementById('form-register').style.display = 'block';
+            } else if (tab === 'login') {
+                document.getElementById('tab-login').classList.add('active');
+                document.getElementById('form-login').style.display = 'block';
+            } else if (tab === 'customer') {
+                document.getElementById('tab-customer').classList.add('active');
+                document.getElementById('form-customer').style.display = 'block';
+            }
+        }
+
+        function togglePasswordVisibility(id, icon) {
+            let input = document.getElementById(id);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function handleRegister() {
+            let name = document.getElementById('reg-name').value.trim();
+            let id = document.getElementById('reg-id').value.trim();
+            let email = document.getElementById('reg-email').value.trim();
+            let pass = document.getElementById('reg-pass').value.trim();
+            let secret = document.getElementById('reg-secret').value.trim();
+
+            if (!name || !id || !email || !pass || !secret) {
+                alert("الرجاء تعبئة كافة الحقول!");
+                return;
+            }
+            if (secret !== SERVER_SECRET_CODE) {
+                alert("شفرة السيرفر غير صحيحة!");
+                return;
+            }
+            if (bannedUsers.some(b => b.id === id || b.email === email)) {
+                alert("هذا الحساب محظور من دخول السيرفر!");
+                return;
+            }
+
+            let role = registeredUsers.length === 0 ? 'Ultimate Controller' : 'عضو عشيرة';
+            let newUser = { name, id, email, pass, role, rooms: ['lounge'] };
+            
+            registeredUsers.push(newUser);
+            saveData();
+
+            currentUser = newUser;
+            enterDashboard();
+        }
+
+        function handleLogin() {
+            let email = document.getElementById('login-email').value.trim();
+            let pass = document.getElementById('login-pass').value.trim();
+            let secret = document.getElementById('login-secret').value.trim();
+
+            if (!email || !pass || !secret) {
+                alert("الرجاء تعبئة كافة الحقول!");
+                return;
+            }
+            if (secret !== SERVER_SECRET_CODE) {
+                alert("شفرة السيرفر غير صحيحة!");
+                return;
+            }
+
+            let found = registeredUsers.find(u => u.email === email && u.pass === pass);
+            if (!found) {
+                alert("البريد الإلكتروني أو كلمة السر غير صحيحة!");
+                return;
+            }
+            if (bannedUsers.some(b => b.id === found.id)) {
+                alert("عذراً، هذا الحساب تم حظره نهائياً!");
+                return;
+            }
+
+            currentUser = found;
+            enterDashboard();
+        }
+
+        function enterAsCustomer() {
+            let name = document.getElementById('cust-name').value.trim();
+            let id = document.getElementById('cust-id').value.trim();
+
+            if (!name || !id) {
+                alert("الرجاء إدخال الاسم والآيدي!");
+                return;
+            }
+
+            let existingIndex = waitingCustomers.findIndex(c => c.id === id);
+            if (existingIndex !== -1) {
+                let cust = waitingCustomers[existingIndex];
+                if (cust.status === 'approved') {
+                    // مُوافق مسبقاً، لا يحق له الدخول إلا بطلب جديد
+                    alert("لقد استهلكت موافقتك السابقة أو تم قطع الاتصال. يرجى الانتظار لحين موافقة جديدة.");
+                    cust.status = 'waiting';
+                    cust.autoMoved = false;
+                    saveData();
+                } else if (cust.status === 'rejected') {
+                    cust.status = 'waiting';
+                    saveData();
+                }
+            } else {
+                waitingCustomers.push({ name, id, status: 'waiting', autoMoved: false });
+                saveData();
+            }
+
+            currentUser = { name, id, type: 'customer', status: 'waiting' };
+            
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('customer-screen').classList.add('active');
+            document.getElementById('cust-display-name').innerText = name;
+            document.getElementById('cust-display-id').innerText = id;
+            document.getElementById('cust-voice-box').style.display = 'none';
+            document.getElementById('cust-wait-icon').style.display = 'block';
+            document.getElementById('cust-wait-msg').innerText = "أنت في غرفة الانتظار الأمنية. انتظر ريثما يقبل المسؤول طلبك لتتحول تلقائياً.";
+        }
+
+        function approveCustomer(id) {
+            let cust = waitingCustomers.find(c => c.id === id);
+            if (cust) {
+                cust.status = 'approved';
+                saveData();
+            }
+        }
+
+        function rejectCustomer(id) {
+            let cust = waitingCustomers.find(c => c.id === id);
+            if (cust) {
+                cust.status = 'rejected';
+                saveData();
+            }
+        }
+
+        function acceptCustomerIntoSalesRoom() {
+            document.getElementById('cust-screen-title').innerHTML = '<i class="fa-solid fa-headset"></i> غرفة المبيعات الصوتية';
+            document.getElementById('cust-wait-icon').style.display = 'none';
+            document.getElementById('cust-wait-msg').innerText = "تم قبول طلبك بنجاح وتحويلك للغرفة الصوتية!";
+            document.getElementById('cust-voice-box').style.display = 'block';
+            
+            // انضمام تلقائي للغرفة الصوتية للمبيعات
+            joinRealVoiceRoom('sales', 'غرفة المبيعات والصفقات');
+        }
+
+        function leaveCustomerRoom() {
+            if (peer) peer.destroy();
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            
+            // تغيير حالته لكي لا يتمكن من العودة إلا بموافقة جديدة
+            let cust = waitingCustomers.find(c => c.id === currentUser.id);
+            if (cust) {
+                cust.status = 'left';
+                cust.autoMoved = false;
+                saveData();
+            }
+
+            alert("تمت مغادرة الغرفة الصوتية. ستحتاج لموافقة جديدة من المسؤول للعودة.");
+            logout();
+        }
+
+        function enterDashboard() {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('customer-screen').classList.remove('active');
+            document.getElementById('dashboard-screen').classList.add('active');
+
+            document.getElementById('header-welcome').innerText = `مرحباً، ${currentUser.name}`;
+            document.getElementById('header-role').innerText = `الرتبة: ${currentUser.role} (ID: ${currentUser.id})`;
+
+            if (currentUser.role === 'Ultimate Controller') {
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('announcement-input-area').style.display = 'block';
+            }
+
+            initPeerConnection();
+            renderDashboardData();
+        }
+
+        function logout() {
+            if (peer) peer.destroy();
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            currentUser = null;
+            currentVoiceRoom = null;
+            document.getElementById('dashboard-screen').classList.remove('active');
+            document.getElementById('customer-screen').classList.remove('active');
+            document.getElementById('auth-screen').classList.add('active');
+        }
+
+        function renderDashboardData() {
+            // تحديث قائمة انتظار الزبائن في لوحة التحكم
+            let waitingListContainer = document.getElementById('waiting-customers-list');
+            if (waitingListContainer) {
+                let activeWaiting = waitingCustomers.filter(c => c.status === 'waiting');
+                if (activeWaiting.length === 0) {
+                    waitingListContainer.innerHTML = '<span style="color: var(--text-dim); font-size: 11px;">لا يوجد زبائن بالانتظار حالياً.</span>';
+                } else {
+                    waitingListContainer.innerHTML = activeWaiting.map(c => `
+                        <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--gold); padding: 6px 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>${c.name} (ID: ${c.id})</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button type="button" class="btn btn-sm" onclick="approveCustomer('${c.id}')" style="background:var(--primary); color:#000;">قبول ونقل</button>
+                                <button type="button" class="btn btn-sm btn-alt" onclick="rejectCustomer('${c.id}')" style="color:var(--accent); border-color:var(--accent);">رفض</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // تحديث قائمة الحظر
+            let banSelect = document.getElementById('ban-user-select');
+            if (banSelect) {
+                banSelect.innerHTML = registeredUsers.map(u => `<option value="${u.id}">${u.name} (ID: ${u.id})</option>`).join('');
+            }
+
+            // تحديث قائمة الصلاحيات
+            let permSelect = document.getElementById('perm-user-select');
+            if (permSelect) {
+                permSelect.innerHTML = registeredUsers.map(u => `<option value="${u.id}">${u.name} (ID: ${u.id})</option>`).join('');
+            }
+
+            // عرض الإعلانات
+            let annContainer = document.getElementById('announcement-list-container');
+            if (annContainer) {
+                annContainer.innerHTML = announcements.map(a => `
+                    <div class="announcement-card-item ${a.isAdmin ? 'admin-announcement' : ''}">
+                        <strong>${a.sender}</strong>
+                        <span>${a.text}</span>
+                    </div>
+                `).join('');
+            }
+
+            // عرض الشات
+            let chatBox = document.getElementById('chat-messages');
+            if (chatBox) {
+                chatBox.innerHTML = chatMessages.map(m => `
+                    <div class="chat-msg ${m.isAdmin ? 'admin-msg' : ''}">
+                        <div class="sender">${m.sender}</div>
+                        <div>${m.text}</div>
+                    </div>
+                `).join('');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        function postAnnouncement() {
+            let text = document.getElementById('new-announcement').value.trim();
+            if (!text) return;
+            announcements.unshift({ sender: currentUser.name, text, isAdmin: true, time: Date.now() });
+            saveData();
+            document.getElementById('new-announcement').value = '';
+            renderDashboardData();
+        }
+
+        function sendChatMessage() {
+            let input = document.getElementById('chat-input');
+            let text = input.value.trim();
+            if (!text) return;
+            chatMessages.push({ sender: currentUser.name, text, isAdmin: currentUser.role === 'Ultimate Controller' });
+            saveData();
+            input.value = '';
+            renderDashboardData();
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function markAttendance() {
+            let today = new Date().toLocaleDateString();
+            if (!attendanceLog.some(l => l.id === currentUser.id && l.date === today)) {
+                attendanceLog.push({ id: currentUser.id, name: currentUser.name, date: today });
+                saveData();
+                document.getElementById('attendance-status').innerText = "تم تسجيل بصمة حضورك بنجاح!";
+            } else {
+                document.getElementById('attendance-status').innerText = "لقد سجلت حضورك مسبقاً اليوم.";
+            }
+        }
+
+        function executeBanUser() {
+            let uid = document.getElementById('ban-user-select').value;
+            let target = registeredUsers.find(u => u.id === uid);
+            if (target) {
+                bannedUsers.push(target);
+                registeredUsers = registeredUsers.filter(u => u.id !== uid);
+                saveData();
+                renderDashboardData();
+                alert("تم حظر العضو بنجاح.");
+            }
+        }
+
+        function grantRoomPermission() {
+            let uid = document.getElementById('perm-user-select').value;
+            let room = document.getElementById('perm-room-select').value;
+            let target = registeredUsers.find(u => u.id === uid);
+            if (target) {
+                if (!target.rooms.includes(room)) target.rooms.push(room);
+                saveData();
+                alert("تم منح الصلاحية بنجاح.");
+            }
+        }
+
+        // --- نظام الاتصال الصوتي عبر PeerJS ---
+        async function loadAudioDevices() {
+            try {
+                let devices = await navigator.mediaDevices.enumerateDevices();
+                let audioSelect = document.getElementById('audio-input-devices');
+                if (!audioSelect) return;
+                audioSelect.innerHTML = '';
+                devices.forEach(device => {
+                    if (device.kind === 'audioinput') {
+                        let opt = document.createElement('option');
+                        opt.value = device.deviceId;
+                        opt.text = device.label || `ميكروفون (${audioSelect.length + 1})`;
+                        audioSelect.appendChild(opt);
+                    }
+                });
+            } catch (e) {
+                console.error("خطأ في جلب الميكروفونات:", e);
+            }
+        }
+
+        function initPeerConnection() {
+            let peerId = "sham_" + (currentUser.id || Math.floor(Math.random() * 100000));
+            peer = new Peer(peerId);
+
+            peer.on('call', async (call) => {
+                let audioId = document.getElementById('audio-input-devices')?.value;
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: audioId ? { deviceId: { exact: audioId } } : true, video: false });
+                    call.answer(localStream);
+                    call.on('stream', (remoteStream) => {
+                        playRemoteAudio(call.peer, remoteStream);
+                    });
+                } catch (e) {
+                    console.error("فشل الرد على الاتصال الصوتي:", e);
+                }
+            });
+        }
+
+        async function joinRealVoiceRoom(roomKey, roomName) {
+            currentVoiceRoom = roomKey;
+            let audioId = document.getElementById('audio-input-devices')?.value;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: audioId ? { deviceId: { exact: audioId } } : true, video: false });
+                
+                // عرض اسم المستخدم في الغرفة الصوتية مع مؤشر التكلم
+                let boxContainer = document.getElementById(`occupants-boxes-${roomKey}`);
+                if (boxContainer) {
+                    boxContainer.innerHTML = `
+                        <div class="user-card-box is-speaking" id="my-voice-card">
+                            <span class="u-name">${currentUser.name} (أنت)</span>
+                            <div class="u-details">
+                                <span class="voice-indicator"></span> متصل
+                            </div>
+                        </div>
+                    `;
+                }
+                alert(`انضممت بنجاح إلى ${roomName}`);
+            } catch (e) {
+                alert("فشل الوصول إلى الميكروفون. تأكد من إعطاء الصلاحية للمتصفح.");
+            }
+        }
+
+        function toggleCustomerMute() {
+            if (!localStream) return;
+            isMuted = !isMuted;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            let btn = document.getElementById('cust-mute-btn');
+            if (isMuted) {
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i> إلغاء الكتم';
+                btn.style.borderColor = 'var(--accent)';
+                btn.style.color = 'var(--accent)';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-microphone"></i> كتم الصوت';
+                btn.style.borderColor = 'var(--primary)';
+                btn.style.color = 'var(--primary)';
+            }
+        }
+
+        function playRemoteAudio(peerId, stream) {
+            let audio = document.getElementById(`audio_${peerId}`);
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = `audio_${peerId}`;
+                audio.autoplay = true;
+                document.body.appendChild(audio);
+            }
+            audio.srcObject = stream;
+        }
+
+        function initMatrixBackground() {
+            const canvas = document.getElementById('matrix-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const letters = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*';
+            const fontSize = 14;
+            const columns = canvas.width / fontSize;
+            const drops = Array(Math.floor(columns)).fill(1);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(2, 5, 2, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#00ff66';
+                ctx.font = fontSize + 'px monospace';
+                for (let i = 0; i < drops.length; i++) {
+                    let text = letters.charAt(Math.floor(Math.random() * letters.length));
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }
+            setInterval(draw, 33);
+        }
+    </script>
+</body>
+</html>
